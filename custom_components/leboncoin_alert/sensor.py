@@ -82,6 +82,7 @@ class LastAdSensor(CoordinatorEntity[SearchCoordinator], SensorEntity):
             "image": last_ad.get("image"),
             "city": last_ad.get("city"),
             "published": last_ad.get("published"),
+            "condition": last_ad.get("condition_label"),
             # Ads from the most recent poll only; the event carries the rest.
             "new_ads": data.get("ads", []),
         }

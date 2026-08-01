@@ -1,11 +1,12 @@
 # Alertes Leboncoin
 
-Intégration Home Assistant qui surveille des recherches leboncoin et alerte en
-moins de deux minutes sur une nouvelle annonce : notification critique iOS
-(qui passe le mode silencieux) et Telegram.
+Intégration Home Assistant qui surveille des recherches leboncoin et signale
+une nouvelle annonce en moins de deux minutes.
 
-Tout tourne dans Home Assistant. Les recherches s'ajoutent et se modifient
-depuis l'interface — aucun fichier YAML à écrire, aucun conteneur à côté.
+Tout tourne dans Home Assistant, les recherches s'ajoutent et se modifient
+depuis l'interface. L'intégration ne notifie pas elle-même : elle émet un
+événement, et vous décidez dans votre propre automatisation comment vous
+voulez être averti.
 
 ## Installation
 
@@ -23,8 +24,8 @@ de les supprimer individuellement.
 |---|---|
 | URL de recherche | Collée depuis la barre d'adresse, filtres déjà appliqués. Les paramètres de tracking sont retirés automatiquement. |
 | Mots-clés exigés / exclus | Filtrage local. Virgule = alternatives, espace = tous les mots exigés. |
-| Cibles de notification | Les services `notify` à appeler (app companion, Telegram…). |
-| Notification critique | Sonne malgré le silencieux et le Ne pas déranger (iOS). |
+| Achat en cours | Écarte les annonces qu'un acheteur a déjà engagées. |
+| États refusés | Écarte selon l'état déclaré par le vendeur (« Pour pièces » par défaut). |
 | Intervalle | 90 s par défaut. |
 | Plage de silence | Aucun sondage ni alerte ; les annonces trouvées sont regroupées dans un digest discret à la fin. |
 
@@ -40,9 +41,8 @@ Chaque recherche crée un appareil avec un capteur `sensor.<recherche>_derniere_
 l'état est le titre de la dernière annonce retenue, les attributs portent le
 prix, l'URL, l'image, la ville et le statut du sondage.
 
-L'intégration émet aussi un événement `leboncoin_alert_new_ads` à chaque lot,
-quelles que soient les cibles de notification configurées, pour brancher vos
-propres automatisations :
+L'intégration émet un événement `leboncoin_alert_new_ads` à chaque lot
+d'annonces retenues. C'est le seul point d'accroche pour être averti :
 
 ```yaml
 triggers:
@@ -57,17 +57,21 @@ actions:
 Charge utile : `search`, `subentry_id`, `kind` (`live` ou `catchup`), `count`,
 `ads[]`, `top`.
 
-## La notification prioritaire
+## L'intégration ne notifie personne
 
-Telegram n'a pas de notion de priorité : son API n'expose que
-`disable_notification`. Si le téléphone est en silencieux, l'alerte est ratée.
-C'est la notification **critique** de l'app companion qui fait le travail.
+C'est délibéré. Elle constate que des annonces correspondent et émet
+l'événement `leboncoin_alert_new_ads` — la façon dont vous voulez l'apprendre
+(notification critique, Telegram, une lampe qui vire au rouge) vous appartient
+et vit dans votre propre automatisation.
 
-iOS demande une autorisation explicite : Réglages → Home Assistant →
-Notifications → **Alertes critiques**. Sans elle, l'option est ignorée.
+Une automatisation d'exemple est fournie dans `homeassistant/automation.yaml`.
 
-Seules les alertes en direct partent en critique. Le digest du matin arrive en
-`interruption-level: active` — visible, silencieux.
+Un point à connaître si vous partez sur Telegram : son API n'a aucune notion
+de priorité, elle n'expose que `disable_notification`. Téléphone en silencieux,
+alerte ratée. Seule la notification **critique** de l'app companion passe le
+mode silencieux et le Ne pas déranger — et iOS exige une autorisation
+explicite : Réglages → Home Assistant → Notifications → **Alertes critiques**.
+Sans elle, l'option est ignorée sans le dire.
 
 ## Ne pas se faire bloquer
 
@@ -112,8 +116,8 @@ La recherche plein texte de leboncoin est large. Mesuré sur une vraie réponse
 vidéo, clés HDMI, ampoules connectées, télécommandes Siri vendues seules,
 supports muraux.
 
-Sans filtre, ces faux positifs déclenchent des notifications critiques — et
-quelques fausses alertes suffisent à ce qu'on désactive tout le dispositif.
+Sans filtre, ces faux positifs déclenchent une alerte — et quelques fausses
+alertes suffisent à ce qu'on désactive tout le dispositif.
 
 Deux pièges vérifiés :
 
@@ -124,6 +128,25 @@ Deux pièges vérifiés :
   que la 4K : `apple tv 4k,appletv 4k`.
 
 Les annonces écartées apparaissent dans les logs en `debug` avec leur motif.
+
+### Deux contrôles qui ne devinent rien
+
+Le titre d'une annonce ne dit pas tout. Deux attributs structurés le disent :
+
+- **`transaction_status: pending`** — un acheteur s'est déjà engagé. Leboncoin
+  l'affiche « Achat en cours ». Sur une recherche d'objets peu chers avec
+  livraison, c'était 9 résultats sur 35 : ces annonces sont perdues d'avance.
+- **`condition`** — l'état déclaré, parmi `pourpieces`, `etatsatisfaisant`,
+  `bonetat`, `tresbonetat`, `reconditionne`, `etatneuf`, `neufavecetiquette`.
+  Seul `pourpieces` est refusé par défaut.
+
+Une annonce peut cumuler les deux tout en ayant un titre irréprochable —
+« Apple TV 4k s'allume mais rien à l'écran » était à la fois `pourpieces` et
+`pending`.
+
+**Environ 30 annonces sur 100 n'ont aucun attribut `condition`.** Une annonce
+sans état déclaré n'est donc jamais rejetée pour ce motif, sinon le filtre
+supprimerait un tiers des résultats en silence.
 
 ## Attention aux recherches avec livraison
 

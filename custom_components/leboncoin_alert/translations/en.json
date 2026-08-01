@@ -28,8 +28,8 @@
             "require_keywords": "Required keywords",
             "exclude_keywords": "Excluded keywords",
             "search_body": "Also filter on the ad body",
-            "notify_services": "Notification targets",
-            "critical": "Critical notification (iOS)",
+            "exclude_pending": "Skip ads with a purchase in progress",
+            "excluded_conditions": "Rejected conditions",
             "poll_seconds": "Polling interval",
             "quiet_start": "Quiet hours start",
             "quiet_end": "Quiet hours end",
@@ -39,11 +39,11 @@
             "url": "Copy it from your browser's address bar.",
             "require_keywords": "Comma = alternatives, space = all words required. Example: apple tv, appletv",
             "exclude_keywords": "Same syntax. Beware of over-broad terms: 'telecommande' would also reject 'Apple TV without remote'.",
-            "notify_services": "notify services to call, for example your companion app and Telegram.",
-            "critical": "Rings through silent mode and Do Not Disturb. Requires Critical Alerts to be allowed for Home Assistant in iOS settings.",
             "poll_seconds": "90 s detects a new ad in under two minutes. Lower adds nothing and degrades the traffic profile.",
             "quiet_start": "No polling and no alerts during this window. Ads found are grouped into a quiet digest at the end of it.",
-            "max_ads": "Guard against a flood of alerts."
+            "max_ads": "Guard against a flood of alerts.",
+            "exclude_pending": "Leboncoin marks an ad as pending as soon as a buyer has engaged. Those are almost always gone.",
+            "excluded_conditions": "Based on the state declared by the seller. Ads without a declared condition are always kept — roughly 30 in 100 have none."
           }
         },
         "reconfigure": {
@@ -55,8 +55,8 @@
             "require_keywords": "Required keywords",
             "exclude_keywords": "Excluded keywords",
             "search_body": "Also filter on the ad body",
-            "notify_services": "Notification targets",
-            "critical": "Critical notification (iOS)",
+            "exclude_pending": "Skip ads with a purchase in progress",
+            "excluded_conditions": "Rejected conditions",
             "poll_seconds": "Polling interval",
             "quiet_start": "Quiet hours start",
             "quiet_end": "Quiet hours end",
@@ -78,6 +78,19 @@
     "sensor": {
       "last_ad": {
         "name": "Latest ad"
+      }
+    }
+  },
+  "selector": {
+    "conditions": {
+      "options": {
+        "pourpieces": "For parts",
+        "etatsatisfaisant": "Satisfactory",
+        "bonetat": "Good",
+        "tresbonetat": "Very good",
+        "reconditionne": "Refurbished",
+        "etatneuf": "As new",
+        "neufavecetiquette": "New with tags"
       }
     }
   }

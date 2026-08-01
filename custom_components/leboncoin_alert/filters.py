@@ -1,10 +1,15 @@
-"""Client-side keyword filtering.
+"""Client-side filtering of search results.
 
 Leboncoin's full-text search is loose: a search for "apple tv 4K" also returns
 video projectors, HDMI dongles and connected bulbs — measured at 35 results for
 9 relevant ones. That is tolerable when browsing and unacceptable when every
-hit fires a critical notification, because a few false alarms are all it takes
-before the whole thing gets switched off.
+hit fires an alert, because a few false alarms are all it takes before the
+whole thing gets switched off.
+
+Two of the checks read structured attributes rather than guessing from wording:
+`transaction_status` turns to "pending" as soon as a buyer has engaged, and
+`condition` carries the declared state. An ad that is both already sold and
+broken looks perfectly good in its title.
 """
 
 from __future__ import annotations
@@ -41,7 +46,22 @@ def matches_any(haystack: str, groups: list[list[str]]) -> bool:
     return any(all(word in haystack for word in group) for group in groups)
 
 
-class KeywordFilter:
+# Declared states leboncoin exposes, worst first. Roughly 30 ads in 100 carry
+# no condition attribute at all, so a missing value can never be a rejection.
+CONDITIONS = [
+    "pourpieces",
+    "etatsatisfaisant",
+    "bonetat",
+    "tresbonetat",
+    "reconditionne",
+    "etatneuf",
+    "neufavecetiquette",
+]
+
+DEFAULT_EXCLUDED_CONDITIONS = ["pourpieces"]
+
+
+class AdFilter:
     """Filters the flat ad dicts produced by `api.serialise`."""
 
     def __init__(
@@ -49,16 +69,25 @@ class KeywordFilter:
         require: str | None = None,
         exclude: str | None = None,
         search_body: bool = False,
+        excluded_conditions: list[str] | None = None,
+        exclude_pending: bool = True,
     ) -> None:
         self.require = parse_keywords(require)
         self.exclude = parse_keywords(exclude)
         self.search_body = search_body
+        self.excluded_conditions = set(
+            DEFAULT_EXCLUDED_CONDITIONS if excluded_conditions is None else excluded_conditions
+        )
+        self.exclude_pending = exclude_pending
 
     @property
     def active(self) -> bool:
-        return bool(self.require or self.exclude)
+        return bool(self.require or self.exclude or self.excluded_conditions or self.exclude_pending)
 
     def reject_reason(self, ad: dict) -> str | None:
+        # Relevance before condition: an ad for connected bulbs is not "already
+        # sold", it is simply not what you are looking for, and the logged
+        # reason should say so.
         text = ad.get("title") or ""
         if self.search_body:
             text = f"{text} {ad.get('body') or ''}"
@@ -68,6 +97,14 @@ class KeywordFilter:
             return "no required keyword"
         if self.exclude and matches_any(haystack, self.exclude):
             return "excluded keyword"
+
+        # Then the structured attributes: facts, not guesses about wording.
+        if self.exclude_pending and ad.get("transaction_status") == "pending":
+            return "purchase already in progress"
+
+        condition = ad.get("condition")
+        if condition and condition in self.excluded_conditions:
+            return f"condition '{condition}'"
         return None
 
     def apply(self, ads: list[dict]) -> tuple[list[dict], list[tuple[dict, str]]]:

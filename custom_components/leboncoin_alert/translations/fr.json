@@ -28,8 +28,8 @@
             "require_keywords": "Mots-clés exigés",
             "exclude_keywords": "Mots-clés exclus",
             "search_body": "Filtrer aussi sur le corps de l'annonce",
-            "notify_services": "Cibles de notification",
-            "critical": "Notification critique (iOS)",
+            "exclude_pending": "Ignorer les annonces avec un achat en cours",
+            "excluded_conditions": "États refusés",
             "poll_seconds": "Intervalle de sondage",
             "quiet_start": "Début du silence",
             "quiet_end": "Fin du silence",
@@ -39,11 +39,11 @@
             "url": "À copier depuis la barre d'adresse du navigateur.",
             "require_keywords": "Virgule = alternatives, espace = tous les mots exigés. Exemple : apple tv, appletv",
             "exclude_keywords": "Même syntaxe. Attention aux termes trop larges : « telecommande » écarterait aussi « Apple TV sans télécommande ».",
-            "notify_services": "Services notify à appeler, par exemple votre app companion et Telegram.",
-            "critical": "Sonne malgré le mode silencieux et le Ne pas déranger. Nécessite d'autoriser les Alertes critiques pour Home Assistant dans les réglages iOS.",
             "poll_seconds": "90 s détecte une annonce en moins de deux minutes. Descendre plus bas n'apporte rien et dégrade le profil de trafic.",
             "quiet_start": "Aucun sondage ni alerte pendant cette plage. Les annonces trouvées sont regroupées dans un digest discret à la fin.",
-            "max_ads": "Garde-fou contre une avalanche d'alertes."
+            "max_ads": "Garde-fou contre une avalanche d'alertes.",
+            "exclude_pending": "Leboncoin marque l'annonce dès qu'un acheteur s'est engagé. Ces annonces sont quasiment toujours perdues.",
+            "excluded_conditions": "D'après l'état déclaré par le vendeur. Les annonces sans état déclaré sont toujours conservées — environ 30 sur 100 n'en ont pas."
           }
         },
         "reconfigure": {
@@ -55,8 +55,8 @@
             "require_keywords": "Mots-clés exigés",
             "exclude_keywords": "Mots-clés exclus",
             "search_body": "Filtrer aussi sur le corps de l'annonce",
-            "notify_services": "Cibles de notification",
-            "critical": "Notification critique (iOS)",
+            "exclude_pending": "Ignorer les annonces avec un achat en cours",
+            "excluded_conditions": "États refusés",
             "poll_seconds": "Intervalle de sondage",
             "quiet_start": "Début du silence",
             "quiet_end": "Fin du silence",
@@ -78,6 +78,19 @@
     "sensor": {
       "last_ad": {
         "name": "Dernière annonce"
+      }
+    }
+  },
+  "selector": {
+    "conditions": {
+      "options": {
+        "pourpieces": "Pour pièces",
+        "etatsatisfaisant": "État satisfaisant",
+        "bonetat": "Bon état",
+        "tresbonetat": "Très bon état",
+        "reconditionne": "Reconditionné",
+        "etatneuf": "État neuf",
+        "neufavecetiquette": "Neuf avec étiquette"
       }
     }
   }

@@ -1,0 +1,64 @@
+# Exemple d'automatisation : réagit à l'événement émis par l'intégration.
+#
+# L'intégration ne notifie personne, c'est ici que tout se décide. Adaptez
+# librement : c'est votre automatisation, pas la sienne.
+#
+# Remplacer notify.mobile_app_xxx par votre service companion réel
+# (Outils de développement → Actions → notify).
+
+- alias: Alerte Leboncoin
+  id: alerte_leboncoin
+  description: Notification critique iOS sur nouvelle annonce leboncoin.
+  mode: queued
+  max: 10
+
+  triggers:
+    - trigger: event
+      event_type: leboncoin_alert_new_ads
+
+  variables:
+    count: "{{ trigger.event.data.count }}"
+    top: "{{ trigger.event.data.top }}"
+    search: "{{ trigger.event.data.search }}"
+    # "live" = trouvée en direct. "catchup" = digest du réveil après la plage
+    # de silence, qu'on ne veut surtout pas envoyer en critique.
+    is_live: "{{ trigger.event.data.kind == 'live' }}"
+    headline: >-
+      {% if count == 1 %}{{ top.title }}{% else %}{{ count }} annonces — {{ search }}{% endif %}
+    subline: >-
+      {% if count == 1 %}{{ top.price_label }}{% if top.condition_label %} · {{ top.condition_label }}{% endif %}{% if top.city %} — {{ top.city }}{% endif %}
+      {% else %}À partir de {{ top.price_label }}{% endif %}
+
+  actions:
+    - choose:
+        # En direct : notification critique. Elle sonne malgré le mode
+        # silencieux et le Ne pas déranger — à condition d'avoir accordé
+        # « Alertes critiques » à Home Assistant dans les réglages iOS.
+        - conditions: "{{ is_live }}"
+          sequence:
+            - action: notify.mobile_app_xxx
+              data:
+                title: "🔔 {{ headline }}"
+                message: "{{ subline }}"
+                data:
+                  url: "{{ top.url }}"
+                  image: "{{ top.image }}"
+                  group: leboncoin
+                  push:
+                    interruption-level: critical
+                    sound:
+                      name: default
+                      critical: 1
+                      volume: 0.8
+      # Digest du matin : visible, mais sans réveiller personne.
+      default:
+        - action: notify.mobile_app_xxx
+          data:
+            title: "🌅 {{ headline }}"
+            message: "{{ subline }}"
+            data:
+              url: "{{ top.url }}"
+              image: "{{ top.image }}"
+              group: leboncoin
+              push:
+                interruption-level: active

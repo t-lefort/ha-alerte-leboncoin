@@ -29,10 +29,10 @@ from homeassistant.helpers.selector import (
 
 from .api import Blocked, InvalidSearchUrl, LeboncoinApi, clean_search_url, serialise
 from .const import (
-    CONF_CRITICAL,
     CONF_EXCLUDE_KEYWORDS,
+    CONF_EXCLUDE_PENDING,
+    CONF_EXCLUDED_CONDITIONS,
     CONF_MAX_ADS,
-    CONF_NOTIFY_SERVICES,
     CONF_POLL_SECONDS,
     CONF_QUIET_END,
     CONF_QUIET_START,
@@ -47,7 +47,7 @@ from .const import (
     MIN_POLL_SECONDS,
     SUBENTRY_TYPE,
 )
-from .filters import KeywordFilter
+from .filters import CONDITIONS, DEFAULT_EXCLUDED_CONDITIONS, AdFilter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,14 +72,6 @@ class LeboncoinConfigFlow(ConfigFlow, domain=DOMAIN):
         return {SUBENTRY_TYPE: SearchSubentryFlowHandler}
 
 
-def _notify_service_options(hass) -> list[dict[str, str]]:
-    services = hass.services.async_services().get("notify", {})
-    return sorted(
-        ({"value": name, "label": f"notify.{name}"} for name in services),
-        key=lambda option: option["label"],
-    )
-
-
 def _schema(hass, defaults: dict[str, Any]) -> vol.Schema:
     hours = [{"value": str(h), "label": f"{h:02d}h"} for h in range(24)]
     return vol.Schema(
@@ -97,17 +89,20 @@ def _schema(hass, defaults: dict[str, Any]) -> vol.Schema:
             vol.Optional(
                 CONF_SEARCH_BODY, default=defaults.get(CONF_SEARCH_BODY, False)
             ): BooleanSelector(),
-            vol.Required(
-                CONF_NOTIFY_SERVICES, default=defaults.get(CONF_NOTIFY_SERVICES, [])
+            vol.Optional(
+                CONF_EXCLUDE_PENDING, default=defaults.get(CONF_EXCLUDE_PENDING, True)
+            ): BooleanSelector(),
+            vol.Optional(
+                CONF_EXCLUDED_CONDITIONS,
+                default=defaults.get(CONF_EXCLUDED_CONDITIONS, DEFAULT_EXCLUDED_CONDITIONS),
             ): SelectSelector(
                 SelectSelectorConfig(
-                    options=_notify_service_options(hass),
+                    options=CONDITIONS,
                     multiple=True,
-                    mode=SelectSelectorMode.DROPDOWN,
-                    custom_value=True,
+                    mode=SelectSelectorMode.LIST,
+                    translation_key="conditions",
                 )
             ),
-            vol.Optional(CONF_CRITICAL, default=defaults.get(CONF_CRITICAL, True)): BooleanSelector(),
             vol.Required(
                 CONF_POLL_SECONDS, default=defaults.get(CONF_POLL_SECONDS, DEFAULT_POLL_SECONDS)
             ): NumberSelector(
@@ -164,12 +159,14 @@ class SearchSubentryFlowHandler(ConfigSubentryFlow):
             return None, errors, placeholders
 
         serialised = [serialise(ad) for ad in ads]
-        keyword_filter = KeywordFilter(
-            user_input.get(CONF_REQUIRE_KEYWORDS),
-            user_input.get(CONF_EXCLUDE_KEYWORDS),
-            user_input.get(CONF_SEARCH_BODY, False),
+        ad_filter = AdFilter(
+            require=user_input.get(CONF_REQUIRE_KEYWORDS),
+            exclude=user_input.get(CONF_EXCLUDE_KEYWORDS),
+            search_body=user_input.get(CONF_SEARCH_BODY, False),
+            excluded_conditions=user_input.get(CONF_EXCLUDED_CONDITIONS),
+            exclude_pending=user_input.get(CONF_EXCLUDE_PENDING, True),
         )
-        kept, _dropped = keyword_filter.apply(serialised)
+        kept, _dropped = ad_filter.apply(serialised)
         placeholders = {
             "total": str(len(serialised)),
             "kept": str(len(kept)),

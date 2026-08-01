@@ -15,8 +15,8 @@ CONF_SEARCH_BODY = "search_body"
 CONF_POLL_SECONDS = "poll_seconds"
 CONF_QUIET_START = "quiet_start"
 CONF_QUIET_END = "quiet_end"
-CONF_NOTIFY_SERVICES = "notify_services"
-CONF_CRITICAL = "critical"
+CONF_EXCLUDED_CONDITIONS = "excluded_conditions"
+CONF_EXCLUDE_PENDING = "exclude_pending"
 CONF_MAX_ADS = "max_ads"
 
 DEFAULT_POLL_SECONDS = 90

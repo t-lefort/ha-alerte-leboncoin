@@ -16,10 +16,10 @@ from .api import Blocked, LeboncoinApi, clean_search_url
 from .const import (
     BACKOFF_MAX,
     BACKOFF_START,
-    CONF_CRITICAL,
     CONF_EXCLUDE_KEYWORDS,
+    CONF_EXCLUDE_PENDING,
+    CONF_EXCLUDED_CONDITIONS,
     CONF_MAX_ADS,
-    CONF_NOTIFY_SERVICES,
     CONF_POLL_SECONDS,
     CONF_QUIET_END,
     CONF_QUIET_START,
@@ -36,7 +36,7 @@ from .const import (
     TRANSIENT_BLOCKS,
     TRANSIENT_PAUSE,
 )
-from .filters import KeywordFilter
+from .filters import AdFilter
 from .store import SeenStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,10 +69,12 @@ class SearchCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._store = store
         self._config = dict(subentry.data)
         self._api = LeboncoinApi(clean_search_url(self._config[CONF_URL]))
-        self._filter = KeywordFilter(
-            self._config.get(CONF_REQUIRE_KEYWORDS),
-            self._config.get(CONF_EXCLUDE_KEYWORDS),
-            self._config.get(CONF_SEARCH_BODY, False),
+        self._filter = AdFilter(
+            require=self._config.get(CONF_REQUIRE_KEYWORDS),
+            exclude=self._config.get(CONF_EXCLUDE_KEYWORDS),
+            search_body=self._config.get(CONF_SEARCH_BODY, False),
+            excluded_conditions=self._config.get(CONF_EXCLUDED_CONDITIONS),
+            exclude_pending=self._config.get(CONF_EXCLUDE_PENDING, True),
         )
         self._consecutive_blocks = 0
         self._was_quiet = False
@@ -194,60 +196,26 @@ class SearchCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             kind = "catchup" if self._was_quiet else "live"
             for ad in batch:
                 _LOGGER.info("%s: NEW [%s] %s — %s", self.search_name, kind, ad["title"], ad["url"])
-            await self._async_dispatch(batch, kind)
+            self._dispatch(batch, kind)
 
         self._was_quiet = False
         return result
 
-    async def _async_dispatch(self, ads: list[dict], kind: str) -> None:
-        payload = {
-            "search": self.search_name,
-            "subentry_id": self.subentry_id,
-            "kind": kind,  # "live" while watching, "catchup" after quiet hours
-            "count": len(ads),
-            "ads": ads,
-            "top": ads[0],
-        }
-        # Fired whatever the notification settings are, so you can build your
-        # own automations on top without giving up the built-in alerts.
-        self.hass.bus.async_fire(EVENT_NEW_ADS, payload)
+    def _dispatch(self, ads: list[dict], kind: str) -> None:
+        """Announce new ads and stop there.
 
-        services = self._config.get(CONF_NOTIFY_SERVICES) or []
-        if not services:
-            return
-
-        top = ads[0]
-        headline = top["title"] if len(ads) == 1 else f"{len(ads)} nouvelles annonces"
-        where = f" — {top['city']}" if top.get("city") else ""
-        message = f"{top['price_label']}{where}" if len(ads) == 1 else f"À partir de {top['price_label']}"
-
-        data: dict[str, Any] = {"url": top["url"], "group": f"leboncoin_{self.subentry_id}"}
-        if top.get("image"):
-            data["image"] = top["image"]
-
-        # Telegram has no notion of priority — its API only exposes
-        # disable_notification — so cutting through a silent phone is the
-        # companion app's critical push doing the work, not Telegram.
-        if kind == "live" and self._config.get(CONF_CRITICAL, True):
-            data["push"] = {
-                "interruption-level": "critical",
-                "sound": {"name": "default", "critical": 1, "volume": 0.8},
-            }
-        else:
-            data["push"] = {"interruption-level": "active"}
-
-        prefix = "🔔" if kind == "live" else "🌅"
-        for service in services:
-            try:
-                await self.hass.services.async_call(
-                    "notify",
-                    service,
-                    {
-                        "title": f"{prefix} {headline}",
-                        "message": f"{message}\n{top['url']}",
-                        "data": data,
-                    },
-                    blocking=False,
-                )
-            except Exception:  # noqa: BLE001 - one broken target must not sink the rest
-                _LOGGER.exception("%s: notify.%s failed", self.search_name, service)
+        The integration deliberately does not notify anyone. It states that
+        matching ads appeared; how you want to hear about it — critical push,
+        Telegram, a light turning red — belongs in your own automation.
+        """
+        self.hass.bus.async_fire(
+            EVENT_NEW_ADS,
+            {
+                "search": self.search_name,
+                "subentry_id": self.subentry_id,
+                "kind": kind,  # "live" while watching, "catchup" after quiet hours
+                "count": len(ads),
+                "ads": ads,
+                "top": ads[0],
+            },
+        )

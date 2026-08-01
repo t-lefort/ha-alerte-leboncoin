@@ -82,17 +82,33 @@ def clean_search_url(url: str) -> str:
     return f"https://{parts.netloc}{parts.path}?{query}"
 
 
+def _attribute(ad, key: str) -> tuple[str | None, str | None]:
+    """Return (value, value_label) of one ad attribute, or (None, None)."""
+    attribute = (ad.attributes or {}).get(key)
+    if attribute is None:
+        return None, None
+    return attribute.value, attribute.value_label
+
+
 def serialise(ad) -> dict:
     """Flatten an `lbc` ad into something JSON-safe for events and attributes."""
     images = ad.images or []
     location = ad.location
     body = ad.body or ""
+    # Both of these are structured attributes, not text to guess at:
+    # transaction_status is "pending" once someone has started buying, and
+    # condition carries the seller's declared state ("pourpieces" and friends).
+    transaction_status, _ = _attribute(ad, "transaction_status")
+    condition, condition_label = _attribute(ad, "condition")
     return {
         "id": ad.id,
         "title": ad.subject,
         # Truncated: this rides along in state attributes and event payloads,
         # and full ad bodies are unbounded.
         "body": body[:500],
+        "transaction_status": transaction_status,
+        "condition": condition,
+        "condition_label": condition_label,
         "price": ad.price,
         "price_label": f"{ad.price:g} €" if ad.price is not None else "Prix non précisé",
         "url": ad.url,

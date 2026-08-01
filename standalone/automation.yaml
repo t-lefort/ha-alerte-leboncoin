@@ -1,0 +1,93 @@
+# Automatisation Home Assistant : reçoit le webhook du watcher et diffuse.
+#
+# À coller dans automations.yaml (ou via l'éditeur YAML d'une automatisation).
+# Remplacer :
+#   - lbc_webhook_id       -> l'id de webhook défini dans secrets.yaml
+#   - mobile_app_iphone_xx -> le nom exact de votre service notify companion
+#   - telegram_bot.*       -> nécessite l'intégration telegram_bot configurée
+
+- alias: Alerte Leboncoin
+  id: alerte_leboncoin
+  description: Notification prioritaire iOS + Telegram sur nouvelle annonce.
+  mode: queued
+  max: 10
+
+  triggers:
+    - trigger: webhook
+      webhook_id: !secret lbc_webhook_id
+      allowed_methods: [POST]
+      # Le watcher tourne sur le même réseau : pas d'exposition externe.
+      local_only: true
+
+  variables:
+    count: "{{ trigger.json.count | int(0) }}"
+    top: "{{ trigger.json.top }}"
+    # "live" = trouvé en direct -> notification critique.
+    # "catchup" = digest du réveil après la plage de silence -> discret.
+    is_live: "{{ trigger.json.kind == 'live' }}"
+    headline: >-
+      {% if count == 1 %}{{ top.title }}{% else %}{{ count }} nouvelles annonces{% endif %}
+    subline: >-
+      {% if count == 1 %}{{ top.price_label }}{% if top.city %} — {{ top.city }}{% endif %}
+      {% else %}À partir de {{ top.price_label }}{% endif %}
+
+  actions:
+    # 1. Push iOS.
+    - choose:
+        # En direct : notification critique. Elle sonne même en mode silencieux
+        # et perce le Ne pas déranger — c'est tout l'intérêt du dispositif.
+        - conditions: "{{ is_live }}"
+          sequence:
+            - action: notify.mobile_app_iphone_xx
+              data:
+                title: "🔔 {{ headline }}"
+                message: "{{ subline }}"
+                data:
+                  url: "{{ top.url }}"
+                  image: "{{ top.image }}"
+                  group: leboncoin
+                  push:
+                    interruption-level: critical
+                    sound:
+                      name: default
+                      critical: 1
+                      volume: 0.8
+      # Digest du matin : visible, mais sans réveiller personne.
+      default:
+        - action: notify.mobile_app_iphone_xx
+          data:
+            title: "🌅 {{ headline }}"
+            message: "{{ subline }}"
+            data:
+              url: "{{ top.url }}"
+              image: "{{ top.image }}"
+              group: leboncoin
+              push:
+                interruption-level: active
+
+    # 2. Telegram : une carte par annonce, avec la photo quand elle existe.
+    - repeat:
+        for_each: "{{ trigger.json.ads }}"
+        sequence:
+          - choose:
+              - conditions: "{{ repeat.item.image is not none }}"
+                sequence:
+                  - action: telegram_bot.send_photo
+                    data:
+                      url: "{{ repeat.item.image }}"
+                      caption: >-
+                        🔔 {{ repeat.item.title }}
+
+                        {{ repeat.item.price_label }}{% if repeat.item.city %} — {{ repeat.item.city }}{% endif %}
+
+                        {{ repeat.item.url }}
+                      disable_notification: "{{ not is_live }}"
+            default:
+              - action: telegram_bot.send_message
+                data:
+                  title: "🔔 {{ repeat.item.title }}"
+                  message: >-
+                    {{ repeat.item.price_label }}{% if repeat.item.city %} — {{ repeat.item.city }}{% endif %}
+
+                    {{ repeat.item.url }}
+                  disable_notification: "{{ not is_live }}"

@@ -1,0 +1,12 @@
+{
+  "domain": "leboncoin_alert",
+  "name": "Alertes Leboncoin",
+  "version": "1.0.0",
+  "documentation": "https://github.com/t-lefort/ha-alerte-leboncoin",
+  "issue_tracker": "https://github.com/t-lefort/ha-alerte-leboncoin/issues",
+  "codeowners": ["@t-lefort"],
+  "config_flow": true,
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": ["lbc==1.1.4"]
+}

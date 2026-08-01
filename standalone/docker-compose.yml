@@ -1,0 +1,15 @@
+services:
+  lbc-watcher:
+    build: .
+    container_name: lbc-watcher
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Holds the SQLite file of already-seen ads. Without it every restart
+      # would re-bootstrap and you would lose the dedup history.
+      - ./data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

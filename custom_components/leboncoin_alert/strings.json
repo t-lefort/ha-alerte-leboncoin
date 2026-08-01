@@ -1,0 +1,84 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Alertes Leboncoin",
+        "description": "Searches are added next, one at a time."
+      }
+    },
+    "abort": {
+      "already_configured": "Alertes Leboncoin is already set up. Add another search from its page."
+    }
+  },
+  "config_subentries": {
+    "search": {
+      "title": "Saved search",
+      "initiate_flow": {
+        "user": "Add a search",
+        "reconfigure": "Edit this search"
+      },
+      "entry_type": "Search",
+      "step": {
+        "user": {
+          "title": "Add a search",
+          "description": "Paste the leboncoin URL with your filters already applied. The search runs once before saving so you can see what it matches.",
+          "data": {
+            "name": "Name",
+            "url": "Leboncoin search URL",
+            "require_keywords": "Required keywords",
+            "exclude_keywords": "Excluded keywords",
+            "search_body": "Also filter on the ad body",
+            "notify_services": "Notification targets",
+            "critical": "Critical notification (iOS)",
+            "poll_seconds": "Polling interval",
+            "quiet_start": "Quiet hours start",
+            "quiet_end": "Quiet hours end",
+            "max_ads": "Max alerts per poll"
+          },
+          "data_description": {
+            "url": "Copy it from your browser's address bar.",
+            "require_keywords": "Comma = alternatives, space = all words required. Example: apple tv, appletv",
+            "exclude_keywords": "Same syntax. Beware of over-broad terms: 'telecommande' would also reject 'Apple TV without remote'.",
+            "notify_services": "notify services to call, for example your companion app and Telegram.",
+            "critical": "Rings through silent mode and Do Not Disturb. Requires Critical Alerts to be allowed for Home Assistant in iOS settings.",
+            "poll_seconds": "90 s detects a new ad in under two minutes. Lower adds nothing and degrades the traffic profile.",
+            "quiet_start": "No polling and no alerts during this window. Ads found are grouped into a quiet digest at the end of it.",
+            "max_ads": "Guard against a flood of alerts."
+          }
+        },
+        "reconfigure": {
+          "title": "Edit search",
+          "description": "The search is re-run to validate your changes.",
+          "data": {
+            "name": "Name",
+            "url": "Leboncoin search URL",
+            "require_keywords": "Required keywords",
+            "exclude_keywords": "Excluded keywords",
+            "search_body": "Also filter on the ad body",
+            "notify_services": "Notification targets",
+            "critical": "Critical notification (iOS)",
+            "poll_seconds": "Polling interval",
+            "quiet_start": "Quiet hours start",
+            "quiet_end": "Quiet hours end",
+            "max_ads": "Max alerts per poll"
+          }
+        }
+      },
+      "error": {
+        "not_leboncoin": "This is not a leboncoin.fr URL.",
+        "no_query": "This URL has no search criteria. Apply your filters on leboncoin, then copy the address.",
+        "bad_param": "A search parameter contains a character that cannot be handled.",
+        "blocked": "Leboncoin refused the request (DataDome). This is usually temporary — try again in a minute.",
+        "filters_match_nothing": "The search returns {total} ads but your keywords reject all of them. Loosen them.",
+        "unknown": "Unexpected error while running the search. Check the logs."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_ad": {
+        "name": "Latest ad"
+      }
+    }
+  }
+}

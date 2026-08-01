@@ -1,0 +1,84 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Alertes Leboncoin",
+        "description": "Les recherches s'ajoutent ensuite, une par une."
+      }
+    },
+    "abort": {
+      "already_configured": "Alertes Leboncoin est déjà configuré. Ajoutez une autre recherche depuis sa page."
+    }
+  },
+  "config_subentries": {
+    "search": {
+      "title": "Recherche enregistrée",
+      "initiate_flow": {
+        "user": "Ajouter une recherche",
+        "reconfigure": "Modifier cette recherche"
+      },
+      "entry_type": "Recherche",
+      "step": {
+        "user": {
+          "title": "Ajouter une recherche",
+          "description": "Collez l'URL leboncoin avec vos filtres déjà appliqués. La recherche est lancée une fois avant l'enregistrement pour vous montrer ce qu'elle remonte.",
+          "data": {
+            "name": "Nom",
+            "url": "URL de recherche leboncoin",
+            "require_keywords": "Mots-clés exigés",
+            "exclude_keywords": "Mots-clés exclus",
+            "search_body": "Filtrer aussi sur le corps de l'annonce",
+            "notify_services": "Cibles de notification",
+            "critical": "Notification critique (iOS)",
+            "poll_seconds": "Intervalle de sondage",
+            "quiet_start": "Début du silence",
+            "quiet_end": "Fin du silence",
+            "max_ads": "Alertes max par sondage"
+          },
+          "data_description": {
+            "url": "À copier depuis la barre d'adresse du navigateur.",
+            "require_keywords": "Virgule = alternatives, espace = tous les mots exigés. Exemple : apple tv, appletv",
+            "exclude_keywords": "Même syntaxe. Attention aux termes trop larges : « telecommande » écarterait aussi « Apple TV sans télécommande ».",
+            "notify_services": "Services notify à appeler, par exemple votre app companion et Telegram.",
+            "critical": "Sonne malgré le mode silencieux et le Ne pas déranger. Nécessite d'autoriser les Alertes critiques pour Home Assistant dans les réglages iOS.",
+            "poll_seconds": "90 s détecte une annonce en moins de deux minutes. Descendre plus bas n'apporte rien et dégrade le profil de trafic.",
+            "quiet_start": "Aucun sondage ni alerte pendant cette plage. Les annonces trouvées sont regroupées dans un digest discret à la fin.",
+            "max_ads": "Garde-fou contre une avalanche d'alertes."
+          }
+        },
+        "reconfigure": {
+          "title": "Modifier la recherche",
+          "description": "La recherche est relancée pour valider vos changements.",
+          "data": {
+            "name": "Nom",
+            "url": "URL de recherche leboncoin",
+            "require_keywords": "Mots-clés exigés",
+            "exclude_keywords": "Mots-clés exclus",
+            "search_body": "Filtrer aussi sur le corps de l'annonce",
+            "notify_services": "Cibles de notification",
+            "critical": "Notification critique (iOS)",
+            "poll_seconds": "Intervalle de sondage",
+            "quiet_start": "Début du silence",
+            "quiet_end": "Fin du silence",
+            "max_ads": "Alertes max par sondage"
+          }
+        }
+      },
+      "error": {
+        "not_leboncoin": "Ce n'est pas une URL leboncoin.fr.",
+        "no_query": "Cette URL ne contient aucun critère. Appliquez vos filtres sur leboncoin, puis copiez l'adresse.",
+        "bad_param": "Un paramètre de recherche contient un caractère impossible à traiter.",
+        "blocked": "Leboncoin a refusé la requête (DataDome). C'est généralement passager — réessayez dans une minute.",
+        "filters_match_nothing": "La recherche remonte {total} annonces mais vos mots-clés les écartent toutes. Assouplissez-les.",
+        "unknown": "Erreur inattendue pendant la recherche. Consultez les logs."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_ad": {
+        "name": "Dernière annonce"
+      }
+    }
+  }
+}

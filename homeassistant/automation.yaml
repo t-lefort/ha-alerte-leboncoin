@@ -62,3 +62,18 @@
               group: leboncoin
               push:
                 interruption-level: active
+
+    # Telegram, avec le lien de chaque annonce. parse_mode plain_text est
+    # délibéré : les URLs leboncoin contiennent des underscores, que Markdown
+    # interprète comme de l'italique et qui cassent le lien.
+    - action: telegram_bot.send_message
+      data:
+        parse_mode: plain_text
+        disable_notification: "{{ not is_live }}"
+        message: >-
+          {{ '🔔' if is_live else '🌅' }} {{ search }}
+          {% for ad in trigger.event.data.ads %}
+          {{ ad.title }}
+          {{ ad.price_label }}{% if ad.condition_label %} · {{ ad.condition_label }}{% endif %}{% if ad.city %} — {{ ad.city }}{% endif %}
+          {{ ad.url }}
+          {% endfor %}

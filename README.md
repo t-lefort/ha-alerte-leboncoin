@@ -14,6 +14,12 @@ Via HACS, en dépôt personnalisé (`Intégration`), puis **Ajouter une
 intégration → Alertes Leboncoin**. Un redémarrage de Home Assistant est
 nécessaire après le téléchargement.
 
+L'icône est embarquée dans `custom_components/leboncoin_alert/brand/` et
+servie par Home Assistant lui-même (2026.3+), sans passer par le CDN
+`brands.home-assistant.io` qui ne connaît pas les intégrations personnalisées.
+Le panneau de téléchargement de HACS continue lui d'interroger le CDN et
+affichera un carré vide : c'est une limite de HACS, pas de l'intégration.
+
 ## Ajouter une recherche
 
 Chaque recherche est une *sous-entrée* : depuis la page de l'intégration,
